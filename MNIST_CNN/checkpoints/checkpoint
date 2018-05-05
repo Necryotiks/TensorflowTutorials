@@ -1,0 +1,2 @@
+model_checkpoint_path: "MNIST_Classifier-1620"
+all_model_checkpoint_paths: "MNIST_Classifier-1620"

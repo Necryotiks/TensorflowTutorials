@@ -21,17 +21,18 @@ import tensorflow as tf
 import time
 from tensorflow.examples.tutorials.mnist import input_data
 import utils
+import sys
 
 # Define paramaters for the model
 learning_rate = 0.001
 batch_size = 1024
-n_epochs = 20
+n_epochs = 30
 n_train = 60000
 n_test = 10000
 
 #TODO: EXPLAIN THIS
 # Step 1: Read in data
-mnist_folder = 'datasets/MNIST_data'
+mnist_folder = '../datasets/MNIST_data'
 utils.download_mnist(mnist_folder)
 train, val, test = utils.read_mnist(mnist_folder, flatten=True)# Reads in each dataset. val contains train_data labels
 
@@ -78,12 +79,13 @@ def max_pool_2x2(x):
   return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                         strides=[1, 2, 2, 1], padding='SAME')
 
-W_conv1 = weight_variable([5, 5, 1, 32])
-b_conv1 = bias_variable([32])
+W_conv1 = weight_variable([5, 5, 1, 32])#weights for layer 1
+b_conv1 = bias_variable([32])#bias for layer 1
 
 x_image = tf.reshape(img, [-1,28,28,1])
-h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_2x2(h_conv1)
+h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1) #Perform image convolution and use ReLU activation function on it (i.e. vs a function such as sigmoid.)
+h_pool1 = max_pool_2x2(h_conv1) #perform a downsampling operation along the spatial dimensions (width, height)
+
 W_conv2 = weight_variable([5, 5, 32, 64])
 b_conv2 = bias_variable([64])
 
@@ -96,7 +98,7 @@ h_pool2_flat = tf.reshape(h_pool2, [-1, 7*7*64])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 # keep_prob = tf.placeholder(tf.float32)
-h_fc1_drop = tf.nn.dropout(h_fc1, 1.0)
+h_fc1_drop = tf.nn.dropout(h_fc1, 1.0)#dropout
 W_fc2 = weight_variable([1024, 10])
 b_fc2 = bias_variable([10])
 
@@ -116,7 +118,9 @@ loss = tf.nn.softmax_cross_entropy_with_logits_v2(labels=label,logits=logits)
 
 # Step 6: define optimizer
 # using Adamn Optimizer with pre-defined learning rate to minimize loss
-optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+
+global_step = tf.get_variable(initializer=tf.constant(0), dtype=tf.int32, trainable=False, name='global_step')
+optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss,global_step=global_step)
 
 
 # Step 7: calculate accuracy with test set
@@ -135,37 +139,54 @@ config.inter_op_parallelism_threads = 14
 # # into one op to make it easier to manage
 # summary_op = tf.summary.merge_all()
 
+saver = tf.train.Saver()
 
 with tf.Session(config=config) as sess:
    
     start_time = time.time()
     sess.run(tf.global_variables_initializer())
 
-    # train the model n_epochs times
-    for i in range(n_epochs): 	
-        print("Epoch: ",i)
-        sess.run(train_init)	# drawing samples from train_data
-        total_loss = 0
-        n_batches = 0
+    ckpt = tf.train.get_checkpoint_state(os.path.dirname('./checkpoints/'))
+    if ckpt:
+        saver.restore(sess, tf.train.latest_checkpoint('./checkpoints/'))
+        print('Session restored.')
+        # train the model n_epochs times
+        sess.run(test_init)			# drawing samples from test_data
+        total_correct_preds = 0
         try:
             while True:
-                _, l = sess.run([optimizer, loss])
-                total_loss += tf.reduce_sum(l)
-                n_batches += 1
+                accuracy_batch = sess.run(accuracy)
+                total_correct_preds += accuracy_batch
         except tf.errors.OutOfRangeError:
             pass
-        print('Average loss epoch {0}: {1}'.format(i, sess.run(total_loss)/n_batches))
-    print('Total time: {0} seconds'.format(time.time() - start_time))
 
-    # test the model
-    sess.run(test_init)			# drawing samples from test_data
-    total_correct_preds = 0
-    try:
-        while True:
-            accuracy_batch = sess.run(accuracy)
-            total_correct_preds += accuracy_batch
-    except tf.errors.OutOfRangeError:
-        pass
+        print('Accuracy {0}'.format(total_correct_preds/n_test))
+        quit()
+    else:
+        for i in range(n_epochs): 	
+            sess.run(train_init)	# drawing samples from train_data
+            total_loss = 0
+            n_batches = 0
+            try:
+                while True:
+                    _, l = sess.run([optimizer, loss])
+                    total_loss += tf.reduce_sum(l)
+                    n_batches += 1
+            except tf.errors.OutOfRangeError:
+                pass
+            print('Average loss epoch {0}: {1}'.format(i, sess.run(total_loss)/n_batches))
+        print('Total time: {0} seconds'.format(time.time() - start_time))
+        save_path = saver.save(sess, "./checkpoints/MNIST_Classifier",global_step=global_step)
+
+        # test the model
+        sess.run(test_init)			# drawing samples from test_data
+        total_correct_preds = 0
+        try:
+            while True:
+                accuracy_batch = sess.run(accuracy)
+                total_correct_preds += accuracy_batch
+        except tf.errors.OutOfRangeError:
+            pass
 
     print('Accuracy {0}'.format(total_correct_preds/n_test))
 writer.close()
