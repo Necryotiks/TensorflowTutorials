@@ -1,25 +1,39 @@
 import tensorflow as tf
 import numpy as np
+<<<<<<< HEAD
 
+=======
+import matplotlib.pyplot as plt
+>>>>>>> d89b19d294ec758e4ac1f7440f24383b7afa7e19
 DATA_FILE = "datasets/birthrate.txt"
 
 # Step 1: read in data from the .txt file
 # data is a numpy array of shape (190, 2), each row is a datapoint
 #TODO: fix this
 data= np.loadtxt(DATA_FILE,skiprows=1,usecols=(1,2)).astype(np.float32)
+<<<<<<< HEAD
 dataset = tf.data.Dataset.from_tensor_slices((data[:,0],data[:,1]))
+=======
+# dataset = tf.data.Dataset.from_tensor_slices((data[:,0],data[:,1]))
+>>>>>>> d89b19d294ec758e4ac1f7440f24383b7afa7e19
 # Step 2: create placeholders for X (birth rate) and Y (life expectancy)
 X = tf.placeholder(tf.float32, name='X')
 Y = tf.placeholder(tf.float32, name='Y')
+c = tf.constant('Example 1')
 
 # Step 3: create weight and bias, initialized to 0
 w = tf.get_variable('weights1', initializer=tf.constant(0.0))
-u = tf.get_variable('weights2', initializer=tf.constant(0.0))
+# u = tf.get_variable('weights2', initializer=tf.constant(0.0))
 b = tf.get_variable('bias', initializer=tf.constant(0.0))
 
 # Step 4: construct model to predict Y (life expectancy from birth rate)
+<<<<<<< HEAD
 Y_predicted = ((w *X) + b) 
 
+=======
+# Y_predicted = ((w *X) + b) 
+Y_predicted = tf.add(tf.multiply(w,X),b)
+>>>>>>> d89b19d294ec758e4ac1f7440f24383b7afa7e19
 # Step 5: use the square error as the loss function
 loss = tf.square(Y - Y_predicted, name='loss')
 def huber_loss(labels, predictions, delta=14.0):
@@ -34,6 +48,7 @@ optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss
 
 with tf.Session() as sess:
     # Step 7: initialize the necessary variables, in this case, w and b
+<<<<<<< HEAD
     iterator = dataset.make_initializable_iterator()
     sess.run(tf.global_variables_initializer())
     X,Y= iterator.get_next()
@@ -48,6 +63,29 @@ with tf.Session() as sess:
             		sess.run([optimizer]) 
 	except tf.errors.OutOfRangeError:
 		pass
+=======
+    # iterator = dataset.make_initializable_iterator()
+    sess.run(tf.global_variables_initializer())
+    print(sess.run(c))
+    # X,Y= iterator.get_next()
+
+
+      # Step 8: train the model
+    for i in range(1000): # run 100 epochs
+            # Session runs train_op to minimize loss
+        for x,y in data:
+            sess.run(optimizer, feed_dict={X:x,Y:y})
+	# sess.run(iterator.initializer)
+	# try:
+		# while True:
+                            # sess.run([optimizer]) 
+	# except tf.errors.OutOfRangeError:
+		# pass
+>>>>>>> d89b19d294ec758e4ac1f7440f24383b7afa7e19
     # Step 9: output the values of w and b
     w_out, b_out = sess.run([w, b])
     print(w_out,b_out)
+    plt.plot(data[:,0], data[:,1], 'bo', label='Testing data')
+    plt.plot(data[:,0],w_out*data[:,0]+b_out, label='line')
+    plt.legend()
+    plt.show()
