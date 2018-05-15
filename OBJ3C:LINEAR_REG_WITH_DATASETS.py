@@ -14,14 +14,14 @@ w=tf.get_variable('slope',initializer=tf.constant(0.0))
 b=tf.get_variable('bias',initializer=tf.constant(0.0))
 y_pred= tf.add(tf.multiply(w,X),b)
 loss = tf.reduce_mean(tf.square((Y-y_pred)))
-optimizer = tf.train.AdamOptimizer(learning_rate=0.01).minimize(loss)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
 
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     w_curr = 0
     b_curr = 0
     start = time.time()
-    for i in range(400): #Epoch number
+    for i in range(3000): #Epoch number
         sess.run(train_init) # not necessary if using a one shot iterator.
         while True:#loop through dataset
             try:
